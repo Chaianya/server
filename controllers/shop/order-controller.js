@@ -1,21 +1,29 @@
-const axios = require("axios"); // Import axios for HTTP requests
+const axios = require("axios");
 const paypal = require("../../helpers/paypal");
 const Order = require("../../models/Order");
 const Cart = require("../../models/Cart");
 const Product = require("../../models/Product");
 
-// Function to fetch the current exchange rate from INR to USD
+
+
+// Use CurrencyAPI endpoint with your API key
 const getExchangeRate = async () => {
   try {
-    const response = await axios.get("https://api.exchangerate-api.com/v4/latest/INR"); // You can use a different API if needed
-    return response.data.rates.USD; // Returns the USD rate from the response
+    const response = await axios.get(`https://api.currencyapi.com/v3/latest`, {
+      params: {
+        apikey: "cur_live_ZpcVhhrFoulXQNp5PHbwZd43Bx1k1Em2jZUw1njJ", // Use your API key here
+        base_currency: "INR",
+        currencies: "USD",
+      },
+    });
+    return response.data.data.USD.value;
   } catch (error) {
     console.error("Error fetching exchange rate:", error);
-    throw new Error("Could not fetch exchange rate");
+    throw new Error("Unable to fetch exchange rate");
   }
 };
 
-// Create a new order
+
 const createOrder = async (req, res) => {
   try {
     const {
@@ -25,7 +33,7 @@ const createOrder = async (req, res) => {
       orderStatus,
       paymentMethod,
       paymentStatus,
-      totalAmount, // total amount in INR
+      totalAmount,
       orderDate,
       orderUpdateDate,
       paymentId,
@@ -33,10 +41,9 @@ const createOrder = async (req, res) => {
       cartId,
     } = req.body;
 
-    const exchangeRate = await getExchangeRate(); // Fetch the current exchange rate
-
-    // Convert total amount from INR to USD
-    const totalAmountUSD = (totalAmount * exchangeRate).toFixed(2);
+    // Fetch the INR to USD exchange rate
+    const exchangeRate = await getExchangeRate();
+    const totalAmountInUSD = (totalAmount * exchangeRate).toFixed(2);
 
     const create_payment_json = {
       intent: "sale",
@@ -44,8 +51,8 @@ const createOrder = async (req, res) => {
         payment_method: "paypal",
       },
       redirect_urls: {
-        return_url: "http://localhost:5173/shop/paypal-return",
-        cancel_url: "http://localhost:5173/shop/paypal-cancel",
+        return_url: `${process.env.CLIENT_URL}/shop/paypal-return`,
+        cancel_url: `${process.env.CLIENT_URL}/shop/paypal-cancel`,
       },
       transactions: [
         {
@@ -53,27 +60,27 @@ const createOrder = async (req, res) => {
             items: cartItems.map((item) => ({
               name: item.title,
               sku: item.productId,
-              price: (item.price * exchangeRate).toFixed(2), // Convert individual item price to USD
+              price: (item.price * exchangeRate).toFixed(2),
               currency: "USD",
               quantity: item.quantity,
             })),
           },
           amount: {
             currency: "USD",
-            total: totalAmountUSD, // Total amount in USD
+            total: totalAmountInUSD,
           },
-          description: "Order description",
+          description: "description",
         },
       ],
     };
 
-    // Create payment with PayPal
     paypal.payment.create(create_payment_json, async (error, paymentInfo) => {
       if (error) {
         console.log(error);
+
         return res.status(500).json({
           success: false,
-          message: "Error while creating PayPal payment",
+          message: "Error while creating paypal payment",
         });
       } else {
         const newlyCreatedOrder = new Order({
@@ -84,7 +91,7 @@ const createOrder = async (req, res) => {
           orderStatus,
           paymentMethod,
           paymentStatus,
-          totalAmount, // Store total amount in INR for reference
+          totalAmount,
           orderDate,
           orderUpdateDate,
           paymentId,
@@ -108,12 +115,11 @@ const createOrder = async (req, res) => {
     console.log(e);
     res.status(500).json({
       success: false,
-      message: "Some error occurred!",
+      message: "Some error occured!",
     });
   }
 };
 
-// Capture payment after approval
 const capturePayment = async (req, res) => {
   try {
     const { paymentId, payerId, orderId } = req.body;
@@ -123,7 +129,7 @@ const capturePayment = async (req, res) => {
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Order cannot be found",
+        message: "Order can not be found",
       });
     }
 
@@ -132,22 +138,21 @@ const capturePayment = async (req, res) => {
     order.paymentId = paymentId;
     order.payerId = payerId;
 
-    // Update product stock based on order items
     for (let item of order.cartItems) {
       let product = await Product.findById(item.productId);
 
       if (!product) {
         return res.status(404).json({
           success: false,
-          message: `Not enough stock for product ${product.title}`,
+          message: `Not enough stock for this product ${product.title}`,
         });
       }
 
       product.totalStock -= item.quantity;
+
       await product.save();
     }
 
-    // Delete the cart after order confirmation
     const getCartId = order.cartId;
     await Cart.findByIdAndDelete(getCartId);
 
@@ -162,12 +167,11 @@ const capturePayment = async (req, res) => {
     console.log(e);
     res.status(500).json({
       success: false,
-      message: "Some error occurred!",
+      message: "Some error occured!",
     });
   }
 };
 
-// Fetch all orders for a user
 const getAllOrdersByUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -189,12 +193,11 @@ const getAllOrdersByUser = async (req, res) => {
     console.log(e);
     res.status(500).json({
       success: false,
-      message: "Some error occurred!",
+      message: "Some error occured!",
     });
   }
 };
 
-// Get details of a specific order
 const getOrderDetails = async (req, res) => {
   try {
     const { id } = req.params;
@@ -216,7 +219,7 @@ const getOrderDetails = async (req, res) => {
     console.log(e);
     res.status(500).json({
       success: false,
-      message: "Some error occurred!",
+      message: "Some error occured!",
     });
   }
 };
