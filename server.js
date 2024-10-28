@@ -30,7 +30,7 @@ const PORT = process.env.PORT || 5000;
 // Configure CORS
 app.use(
   cors({
-    origin: process.env.CLIENT_URL, // Replace with client URL
+    origin: process.env.CLIENT_URL, // Set to client URL, e.g., 'https://clint-ttjj.onrender.com'
     methods: ["GET", "POST", "DELETE", "PUT"],
     allowedHeaders: [
       "Content-Type",
@@ -39,16 +39,10 @@ app.use(
       "Expires",
       "Pragma",
     ],
-    credentials: true,
-    optionsSuccessStatus: 200, // Legacy browser support for preflight
+    credentials: true, // Allows cookies and credentials to be included in requests
+    optionsSuccessStatus: 200, // Legacy support for preflight requests
   })
 );
-
-// Optional: Log request origins to help debug CORS issues
-app.use((req, res, next) => {
-  console.log("Request Origin:", req.headers.origin);
-  next();
-});
 
 // Enable preflight requests for all routes
 app.options('*', cors());
