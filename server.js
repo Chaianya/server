@@ -3,6 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+
+// Import route handlers
 const authRouter = require("./routes/auth/auth-routes");
 const adminProductsRouter = require("./routes/admin/products-routes");
 const adminOrderRouter = require("./routes/admin/order-routes");
@@ -16,20 +18,19 @@ const shopReviewRouter = require("./routes/shop/review-routes");
 
 const commonFeatureRouter = require("./routes/common/feature-routes");
 
-//create a database connection -> u can also
-//create a separate file for this and then import/use that file here
-
+// Create a database connection
 mongoose
-  .connect(process.env.MONGO_URL)
+  .connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("MongoDB connected"))
-  .catch((error) => console.log(error));
+  .catch((error) => console.log("MongoDB connection error:", error));
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Configure CORS
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: process.env.CLIENT_URL, // Replace with client URL
     methods: ["GET", "POST", "DELETE", "PUT"],
     allowedHeaders: [
       "Content-Type",
@@ -39,11 +40,24 @@ app.use(
       "Pragma",
     ],
     credentials: true,
+    optionsSuccessStatus: 200, // Legacy browser support for preflight
   })
 );
 
+// Optional: Log request origins to help debug CORS issues
+app.use((req, res, next) => {
+  console.log("Request Origin:", req.headers.origin);
+  next();
+});
+
+// Enable preflight requests for all routes
+app.options('*', cors());
+
+// Middleware setup
 app.use(cookieParser());
 app.use(express.json());
+
+// Route setup
 app.use("/api/auth", authRouter);
 app.use("/api/admin/products", adminProductsRouter);
 app.use("/api/admin/orders", adminOrderRouter);
@@ -57,4 +71,6 @@ app.use("/api/shop/review", shopReviewRouter);
 
 app.use("/api/common/feature", commonFeatureRouter);
 
+// Start server
 app.listen(PORT, () => console.log(`Server is now running on port ${PORT}`));
+
