@@ -3,8 +3,6 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-
-// Import route handlers
 const authRouter = require("./routes/auth/auth-routes");
 const adminProductsRouter = require("./routes/admin/products-routes");
 const adminOrderRouter = require("./routes/admin/order-routes");
@@ -18,19 +16,19 @@ const shopReviewRouter = require("./routes/shop/review-routes");
 
 const commonFeatureRouter = require("./routes/common/feature-routes");
 
-// Create a database connection
+// Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("MongoDB connected"))
-  .catch((error) => console.log("MongoDB connection error:", error));
+  .catch((error) => console.error("MongoDB connection error:", error));
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Configure CORS
+// CORS configuration
 app.use(
   cors({
-    origin: process.env.CLIENT_URL, // Set to client URL, e.g., 'https://clint-ttjj.onrender.com'
+    origin: process.env.CLIENT_URL,  // Make sure this is set to your client URL
     methods: ["GET", "POST", "DELETE", "PUT"],
     allowedHeaders: [
       "Content-Type",
@@ -39,32 +37,29 @@ app.use(
       "Expires",
       "Pragma",
     ],
-    credentials: true, // Allows cookies and credentials to be included in requests
-    optionsSuccessStatus: 200, // Legacy support for preflight requests
+    credentials: true,  // Allow credentials (cookies, authorization headers)
   })
 );
 
-// Enable preflight requests for all routes
-app.options('*', cors());
+app.options("*", cors()); // Handle preflight requests
 
-// Middleware setup
+// Middleware
 app.use(cookieParser());
 app.use(express.json());
 
-// Route setup
+// Routes
 app.use("/api/auth", authRouter);
 app.use("/api/admin/products", adminProductsRouter);
 app.use("/api/admin/orders", adminOrderRouter);
-
 app.use("/api/shop/products", shopProductsRouter);
 app.use("/api/shop/cart", shopCartRouter);
 app.use("/api/shop/address", shopAddressRouter);
 app.use("/api/shop/order", shopOrderRouter);
 app.use("/api/shop/search", shopSearchRouter);
 app.use("/api/shop/review", shopReviewRouter);
-
 app.use("/api/common/feature", commonFeatureRouter);
 
-// Start server
+// Start the server
 app.listen(PORT, () => console.log(`Server is now running on port ${PORT}`));
+
 
