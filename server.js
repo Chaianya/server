@@ -1,4 +1,3 @@
-
 // Load environment variables from .env file
 require("dotenv").config();
 const express = require("express");
@@ -45,7 +44,7 @@ if (cluster.isMaster) {
         mongoose.connect(process.env.MONGO_URL, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            poolSize: 10, // Set connection pool size for better handling of concurrent connections
+            maxPoolSize: 10, // Updated: maxPoolSize replaces poolSize
         })
         .then(() => console.log("MongoDB connected"))
         .catch((error) => console.error("MongoDB connection error:", error));
@@ -98,4 +97,3 @@ if (cluster.isMaster) {
 
     startServer(); // Start the server instance
 }
-
